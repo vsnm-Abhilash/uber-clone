@@ -1,38 +1,43 @@
 package com.abhilash.project.uber.uberApp.services.impl;
 
-import com.abhilash.project.uber.uberApp.dto.DriverDTO;
-import com.abhilash.project.uber.uberApp.dto.SignUpDTO;
-import com.abhilash.project.uber.uberApp.dto.UserDTO;
+import com.abhilash.project.uber.uberApp.dto.*;
 import com.abhilash.project.uber.uberApp.entities.Driver;
 import com.abhilash.project.uber.uberApp.entities.User;
 import com.abhilash.project.uber.uberApp.entities.enums.Role;
 import com.abhilash.project.uber.uberApp.exceptions.ResourceNotFoundException;
 import com.abhilash.project.uber.uberApp.exceptions.RuntimeConflictException;
 import com.abhilash.project.uber.uberApp.repositories.UserRepository;
+import com.abhilash.project.uber.uberApp.security.JWTService;
+import com.abhilash.project.uber.uberApp.security.UserService;
 import com.abhilash.project.uber.uberApp.services.AuthService;
 import com.abhilash.project.uber.uberApp.services.DriverService;
 import com.abhilash.project.uber.uberApp.services.RiderService;
 import com.abhilash.project.uber.uberApp.services.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-
     private final ModelMapper mapper;
+
     private final UserRepository userRepository;
+
     private final RiderService riderService;
     private final WalletService walletService;
     private final DriverService driverService;
-    @Override
-    public String login(String username, String password) {
-        return "";
-    }
-
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JWTService jwtService;
+    private final UserService userService;
     @Override
     @Transactional
     public UserDTO signUp(SignUpDTO signUpDTO) {
@@ -43,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
 
         User mappedUser =mapper.map(signUpDTO,User.class);
         mappedUser.setRoles(Set.of(Role.RIDER));
+        mappedUser.setPassword(passwordEncoder.encode(mappedUser.getPassword()));
         User savedUser=userRepository.save(mappedUser);
 
         //create User related Entities
@@ -50,7 +56,6 @@ public class AuthServiceImpl implements AuthService {
         walletService.createNewWallet(savedUser);
         return mapper.map(savedUser,UserDTO.class);
     }
-
     @Override
     public DriverDTO onBoardNewDriver(Long userId,String vehicleId) {
         User user=userRepository.findById(userId).orElseThrow(
@@ -81,5 +86,24 @@ public class AuthServiceImpl implements AuthService {
         user.getRoles().add(Role.DRIVER);
         userRepository.save(user);
         return driverService.createNewDriver(createDriver);
+    }
+
+    @Override
+    public String[] login(LoginRequestDTO loginRequestDTO) {
+        Authentication authentication=authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(),loginRequestDTO.getPassword())
+        );
+        User user= (User) authentication.getPrincipal();
+        String accessToken= jwtService.generateAccessToken(user);
+        String refreshToken= jwtService.generateRefreshToken(user);
+
+        return new String[]{accessToken,refreshToken};
+    }
+
+    @Override
+    public String refreshToken(String refreshToken) {
+        Long userId=jwtService.getUserIdFromToken(refreshToken);
+        User user=userService.getUserByUserId(userId);
+        return jwtService.generateAccessToken(user);
     }
 }

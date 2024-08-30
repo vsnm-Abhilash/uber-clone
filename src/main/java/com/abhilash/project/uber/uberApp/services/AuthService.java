@@ -1,11 +1,11 @@
 package com.abhilash.project.uber.uberApp.services;
 
-import com.abhilash.project.uber.uberApp.dto.DriverDTO;
-import com.abhilash.project.uber.uberApp.dto.SignUpDTO;
-import com.abhilash.project.uber.uberApp.dto.UserDTO;
+import com.abhilash.project.uber.uberApp.dto.*;
 
 public interface AuthService {
-    String login(String username,String password);
     UserDTO signUp(SignUpDTO signUpDTO);
     DriverDTO onBoardNewDriver(Long userId,String vehicleId);
+    String[] login(LoginRequestDTO loginRequestDTO);
+
+    String refreshToken(String refreshToken);
 }

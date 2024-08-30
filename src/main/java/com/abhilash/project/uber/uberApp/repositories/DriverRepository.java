@@ -1,12 +1,14 @@
 package com.abhilash.project.uber.uberApp.repositories;
 
 import com.abhilash.project.uber.uberApp.entities.Driver;
+import com.abhilash.project.uber.uberApp.entities.User;
 import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 //ST_Distance(Point 1,Point 2)
 //ST_DWithin(Point 1,10000)
@@ -29,4 +31,6 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     List<Driver> findTopRatedDrivers(Point pickupLocation);
 
     Driver findByVehicleId(String vehicleId);
+
+    Optional<Driver> findByUser(User user);
 }

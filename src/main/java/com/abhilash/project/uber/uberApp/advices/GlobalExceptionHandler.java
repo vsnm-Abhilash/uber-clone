@@ -5,12 +5,15 @@ package com.abhilash.project.uber.uberApp.advices;
 import com.abhilash.project.uber.uberApp.exceptions.BadCredentialsException;
 import com.abhilash.project.uber.uberApp.exceptions.ResourceNotFoundException;
 import com.abhilash.project.uber.uberApp.exceptions.RuntimeConflictException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.naming.AuthenticationException;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,9 +27,9 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT).build();
         return buildErrorResponseEntity(apiError);
     }
-/*
+
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiError> handleAuthenticationException(AuthenticationException exception){
+    public ResponseEntity<ApiResponse<?>> handleAuthenticationException(AuthenticationException exception){
         ApiError apiError=ApiError.builder()
                 .message(exception.getLocalizedMessage())
                 .status(HttpStatus.UNAUTHORIZED).build();
@@ -35,12 +38,12 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ApiError> handleJwtException(JwtException exception){
+    public ResponseEntity<ApiResponse<?>> handleJwtException(JwtException exception){
         ApiError apiError=ApiError.builder()
                 .message(exception.getLocalizedMessage())
                 .status(HttpStatus.UNAUTHORIZED).build();
         return buildErrorResponseEntity(apiError);
-    }*/
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException exception){
@@ -50,8 +53,17 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDeniedException(AccessDeniedException exception){
+        //return new ResponseEntity<>("Resource not found", HttpStatus.NOT_FOUND);
+        ApiError apiError=ApiError.builder().status(HttpStatus.FORBIDDEN).message(exception.getMessage()).
+                build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<?>> handleResourceNotFound(BadCredentialsException exception){
+    public ResponseEntity<ApiResponse<?>> handleBadCredentialsException(BadCredentialsException exception){
         ApiError apiError=ApiError.builder().status(HttpStatus.BAD_REQUEST).message(exception.getMessage()).
                 build();
         return buildErrorResponseEntity(apiError);
@@ -59,7 +71,7 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleInternalServerError(Exception exception){
+    public ResponseEntity<ApiResponse<?>> handleException(Exception exception){
         ApiError apiError=ApiError.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .message(exception.getMessage())
@@ -68,7 +80,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleInputValidationError(MethodArgumentNotValidException exception){
+    public ResponseEntity<ApiResponse<?>> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception){
         List<String> errors=exception
                 .getBindingResult()
                 .getAllErrors()
